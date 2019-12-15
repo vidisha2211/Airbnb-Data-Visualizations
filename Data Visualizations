@@ -1,0 +1,118 @@
+## AIRBNB DATA ANALYSIS ##
+airbnb_df <- read.csv("airbnb-listings.csv", header = T, stringsAsFactors = F)
+colSums(is.na(airbnb_df))
+row.has.na <- apply(airbnb_df, 1, function(x){any(is.na(x))})
+sum(row.has.na)
+airbnb_df <- airbnb_df[!row.has.na,]
+
+# PLOT 1: CITY WISE LISTINGS OF AIRBNB (3D Pie chart)
+library(plotrix)
+citystb <- table(airbnb_df$city)
+citydf <- data.frame(citystb)
+citydf$percent <- (citydf$Freq/sum(citydf$Freq))*100
+pie3D(citydf$percent, labels = citydf$Var1, radius=0.9, explode = 0.05, main = "Boston", theta=pi/6,
+      labelcex= 1,labelrad=2,minsep=0.3)
+
+
+# PLOT 2: HEAT MAP OF LOG PRICE FOR ROOM TYPES ACROSS CITIES
+library(RColorBrewer)
+colors <- colorRampPalette(c("blue", "green", "yellow", "red"))
+
+p <- ggplot(airbnb_df, aes(room_type, city)) +
+  geom_tile(aes(fill = log_price), colour = "black") +
+  scale_fill_gradientn(colours = rainbow(6, alpha = 1)) +
+  xlab("Room Type") + ylab("City") + labs(fill = "Price Relativity")
+p
+
+# PLOT 3: DISTRIBUTION OF Cancellation policy according to cities
+
+par(mfrow = c(2,3))
+# Boston
+bos_df <- airbnb_df[airbnb_df$city == "Boston",]
+bosbar <- table(bos_df$cancellation_policy)
+barplot(bosbar, col = "violetred2", main = "Boston")
+
+# NYC
+nyc_df <- airbnb_df[airbnb_df$city == "NYC",]
+nycbar <- table(nyc_df$cancellation_policy)
+barplot(nycbar, col = "violetred2", main = "New York City")
+
+# Chicago
+chi_df <- airbnb_df[airbnb_df$city == "Chicago",]
+chibar <- table(chi_df$cancellation_policy)
+barplot(chibar, col = "violetred2", main = "Chicago")
+
+# DC
+dc_df <- airbnb_df[airbnb_df$city == "DC",]
+dcbar <- table(dc_df$cancellation_policy)
+barplot(dcbar, col = "violetred2", main = "DC")
+
+# LA
+la_df <- airbnb_df[airbnb_df$city == "LA",]
+labar <- table(la_df$cancellation_policy)
+barplot(labar, col = "violetred2", main = "LA")
+
+# SF
+sf_df <- airbnb_df[airbnb_df$city == "SF",]
+sfbar <- table(sf_df$cancellation_policy)
+barplot(sfbar, col = "violetred2", main = "SF")
+
+# PLOT 4: DENSITY PLOT FOR REVIEW RATINGS
+library(ggplot2)
+par(mfrow = c(1,1))
+d <- density(airbnb_df$review_scores_rating)
+plot(d, main="Distribution for Ratings for the listing")
+polygon(d, col="sienna1")
+
+ggdotchart(dfm, x = "cancellation_policy", y = "review_scores_rating",
+           color = "number_of_reviews",                                
+           palette = c("#00AFBB", "#E7B800", "#FC4E07"), 
+           sorting = "descending",                       
+           rotate = TRUE,                                
+           dot.size = 2,                                 
+           y.text.col = TRUE,                            
+           ggtheme = theme_pubr()                        
+)+
+  theme_cleveland()                                      
+
+# PLOT 5: BAR PLOT FOR CANCELLATION POLICY AFFECTING RATINGS
+
+can_chart <- tapply(airbnb_df$review_scores_rating,airbnb_df$cancellation_policy,FUN = mean)
+
+can_chart <- data.frame(can_chart)
+can_chart$policy <- row.names(can_chart)
+row.names(can_chart) <- NULL
+
+cancelchart <-ggplot(can_chart,aes(y=can_chart,x=policy)) +
+  geom_bar(fill="plum3", stat = "identity")+ coord_cartesian(ylim=c(85,95))
+cancelchart
+
+
+# PLOT 6: CITY VS AVG RATING AND CITY VS AVG REVIEW(POINT + LINE)
+library(ggplot2)
+avg_rating <- tapply(airbnb_df$review_scores_rating, airbnb_df$city
+                     , FUN = mean)
+avg_rat_df <- data.frame(rownames(avg_rating), avg_rating)
+row.names(avg_rat_df) <- NULL
+colnames(avg_rat_df) <- c("city", "avg_rating")
+avg_rat_df$avg_rating <- as.numeric(avg_rat_df$avg_rating)
+
+# city vs avg review
+
+avg_review <- tapply(airbnb_df$number_of_reviews, airbnb_df$city
+                     , FUN = mean)
+avg_rev_df <- data.frame(rownames(avg_review), avg_review)
+row.names(avg_rev_df) <- NULL
+colnames(avg_rev_df) <- c("city", "avg_review")
+avg_rev_df$avg_review <- as.numeric(avg_rev_df$avg_review)
+
+par(mfrow = c(2, 1))
+ggplot(avg_rat_df, aes(x = avg_rat_df$city, y = avg_rat_df$avg_rating, group = 1)) +
+  geom_point(shape = 21, fill = "orange2", col = "orange2", size = 5) + coord_cartesian(ylim = c(90, 100)) +
+  guides(col = F) + ggtitle("Average rating for each city") + 
+  xlab("City") + ylab("Average Rating") + geom_line()
+
+ggplot(avg_rev_df, aes(x = avg_rev_df$city, y = avg_rev_df$avg_review, group = 1)) +
+  geom_point(shape = 21, fill = "purple", col = "purple", size = 5) + coord_cartesian(ylim = c(20, 40)) +
+  guides(col = F) + ggtitle("Average reviews for each city") + 
+  xlab("City") + ylab("Average Reviews") + geom_line()
